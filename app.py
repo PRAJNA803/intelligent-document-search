@@ -40,53 +40,45 @@ st.markdown(
         margin:0;
     }
 
-    section[data-testid="stSidebar"] {
-        background-color: #ffffff;
-        border-right: 1px solid #e2e8f0;
+    section[data-testid="stSidebar"]{
+        background-color:#ffffff;
+        border-right:1px solid #e2e8f0;
     }
 
-    .stButton > button {
+    .stButton>button{
         background-color:#2563eb;
-        color: white;
-        border-radius: 8px;
-        font-weight: 600;
-        border: none;
-        padding: 0.5rem 1rem;
-        transition: all 0.2s ease;
+        color:white;
+        border-radius:8px;
+        font-weight:600;
+        border:none;
+        padding:0.5rem 1rem;
+        transition:all 0.2s ease;
     }
 
-    .stButton > button:hover {
-        background-color: #1d4ed8;
-        color: white;
+    .stButton>button:hover{
+        background-color:#1d4ed8;
+        color:white;
+    }
+    .response-card{
+        background-color:#ffffff;
+        padding:1.5rem;
+        border-radius:10px;
+        border:1px solid #e2e8f0;
+        box-shadow:0 1px 3px rgba(0, 0, 0, 0.05);
+        margin-top:1rem;
+        line-height:1.7;
     }
 
-    /* Response Card */
-    .response-card {
-        background-color: #ffffff;
-        padding: 1.5rem;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        margin-top: 1rem;
-        line-height: 1.7;
-    }
-
-    /* File uploader */
-    [data-testid="stFileUploader"] {
-        background-color: #f8fafc;
-        border-radius: 10px;
-        padding: 0.5rem;
+    [data-testid="stFileUploader"]{
+        background-color:#f8fafc;
+        border-radius:10px;
+        padding:0.5rem;
     }
 
     </style>
     """,
     unsafe_allow_html=True,
 )
-
-
-# ============================================================
-# HEADER
-# ============================================================
 
 st.markdown(
     """
@@ -101,10 +93,6 @@ st.markdown(
 )
 
 
-# ============================================================
-# SESSION STATE
-# ============================================================
-
 if "vector_store" not in st.session_state:
     st.session_state.vector_store = None
 
@@ -113,11 +101,6 @@ if "qa_chain" not in st.session_state:
 
 if "document_name" not in st.session_state:
     st.session_state.document_name = None
-
-
-# ============================================================
-# LOAD EMBEDDINGS
-# ============================================================
 
 @st.cache_resource(show_spinner="Initializing vector model runtime...")
 def load_embeddings():
@@ -129,40 +112,18 @@ def load_embeddings():
 
     return embeddings
 
-
-# ============================================================
-# LOAD FLAN-T5 MODEL
-# ============================================================
-#
-# IMPORTANT:
-# Transformers 5.x removed the old
-# "text2text-generation" pipeline task.
-#
-# Therefore we directly load FLAN-T5 using:
-#   AutoTokenizer
-#   AutoModelForSeq2SeqLM
-#
-# This is appropriate because FLAN-T5 is a seq2seq model.
-# ============================================================
-
 @st.cache_resource(show_spinner="Loading FLAN-T5 language model...")
 def load_llm():
     import torch
     from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
     from langchain_core.runnables import RunnableLambda
 
-    model_name = "google/flan-t5-base"
+    model_name="google/flan-t5-base"
+    tokenizer=AutoTokenizer.from_pretrained(model_name)
+    model=AutoModelForSeq2SeqLM.from_pretrained(model_name)
+    device="cuda" if torch.cuda.is_available() else "cpu"
 
-    # Load tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-
-    # Load model
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-
-    # Use GPU if available
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    model = model.to(device)
+    model=model.to(device)
     model.eval()
 
     def generate_answer(prompt):
@@ -173,77 +134,50 @@ def load_llm():
         tokenized, passed to the model, and decoded back
         into a normal string.
         """
-
-        # ChatPromptValue / PromptValue -> string
-        if hasattr(prompt, "to_string"):
-            prompt_text = prompt.to_string()
+        if hasattr(prompt,"to_string"):
+            prompt_text=prompt.to_string()
         else:
-            prompt_text = str(prompt)
-
-        # Tokenize
-        inputs = tokenizer(
+            prompt_text=str(prompt)
+        inputs=tokenizer(
             prompt_text,
             return_tensors="pt",
             truncation=True,
             max_length=1024,
         )
-
-        # Move tensors to CPU/GPU
-        inputs = {
-            key: value.to(device)
-            for key, value in inputs.items()
+        inputs={
+            key:value.to(device)
+            for key,value in inputs.items()
         }
-
-        # Generate
         with torch.no_grad():
-            outputs = model.generate(
+            outputs=model.generate(
                 **inputs,
                 max_new_tokens=256,
                 num_beams=4,
                 do_sample=False,
                 early_stopping=True,
             )
-
-        # Decode
-        answer = tokenizer.decode(
+        answer=tokenizer.decode(
             outputs[0],
             skip_special_tokens=True,
         )
 
         return answer.strip()
-
-    # Convert our Python function into a LangChain Runnable.
-    #
-    # This allows it to work with:
-    # create_stuff_documents_chain()
-    # create_retrieval_chain()
-    #
-    llm = RunnableLambda(generate_answer)
-
+    llm=RunnableLambda(generate_answer)
     return llm
-
-
-# ============================================================
-# SIDEBAR
-# ============================================================
 
 with st.sidebar:
 
     st.markdown("### Document Workspace")
 
-    uploaded_file = st.file_uploader(
+    uploaded_file=st.file_uploader(
         "Select PDF File",
         type=["pdf"],
     )
 
-    process_button = st.button(
+    process_button=st.button(
         "Process & Index Document",
         use_container_width=True,
     )
-
-    # --------------------------------------------------------
-    # PROCESS PDF
-    # --------------------------------------------------------
 
     if uploaded_file is not None and process_button:
 
@@ -253,34 +187,19 @@ with st.sidebar:
 
             try:
 
-                # ------------------------------------------------
-                # Imports
-                # ------------------------------------------------
-
                 from pypdf import PdfReader
-
                 from langchain_core.documents import Document
-
                 from langchain_text_splitters import (
                     RecursiveCharacterTextSplitter,
                 )
-
                 from langchain_community.vectorstores import FAISS
-
                 from langchain_classic.chains import (
                     create_retrieval_chain,
                 )
-
                 from langchain_classic.chains.combine_documents import (
                     create_stuff_documents_chain,
                 )
-
                 from langchain_core.prompts import PromptTemplate
-
-                # ------------------------------------------------
-                # Save uploaded PDF temporarily
-                # ------------------------------------------------
-
                 with tempfile.NamedTemporaryFile(
                     delete=False,
                     suffix=".pdf",
@@ -292,17 +211,11 @@ with st.sidebar:
 
                     tmp_path = tmp_file.name
 
-                # ------------------------------------------------
-                # Extract PDF text
-                # ------------------------------------------------
-
-                reader = PdfReader(tmp_path)
-
-                documents = []
-
+                reader=PdfReader(tmp_path)
+                documents=[]
                 for page_idx, page in enumerate(reader.pages):
 
-                    text = page.extract_text()
+                    text=page.extract_text()
 
                     if text and text.strip():
 
@@ -316,10 +229,6 @@ with st.sidebar:
                             )
                         )
 
-                # ------------------------------------------------
-                # Validate PDF
-                # ------------------------------------------------
-
                 if not documents:
 
                     st.error(
@@ -331,11 +240,7 @@ with st.sidebar:
 
                     st.stop()
 
-                # ------------------------------------------------
-                # Split text into chunks
-                # ------------------------------------------------
-
-                text_splitter = RecursiveCharacterTextSplitter(
+                text_splitter=RecursiveCharacterTextSplitter(
                     chunk_size=700,
                     chunk_overlap=100,
                     length_function=len,
@@ -345,15 +250,7 @@ with st.sidebar:
                     documents
                 )
 
-                # ------------------------------------------------
-                # Generate embeddings
-                # ------------------------------------------------
-
-                embeddings = load_embeddings()
-
-                # ------------------------------------------------
-                # Build FAISS vector store
-                # ------------------------------------------------
+                embeddings=load_embeddings()
 
                 vector_store = FAISS.from_documents(
                     chunks,
@@ -361,33 +258,14 @@ with st.sidebar:
                 )
 
                 st.session_state.vector_store = vector_store
+                llm=load_llm()
 
-                # ------------------------------------------------
-                # Load LLM
-                # ------------------------------------------------
-
-                llm = load_llm()
-
-                # ------------------------------------------------
-                # Create retriever
-                # ------------------------------------------------
-
-                retriever = vector_store.as_retriever(
+                retriever=vector_store.as_retriever(
                     search_kwargs={
                         "k": 3
                     }
                 )
-
-                # ------------------------------------------------
-                # RAG Prompt
-                # ------------------------------------------------
-                #
-                # PromptTemplate is intentionally used instead of
-                # ChatPromptTemplate because FLAN-T5 expects
-                # a normal text prompt.
-                # ------------------------------------------------
-
-                prompt = PromptTemplate.from_template(
+                prompt=PromptTemplate.from_template(
                     """
 You are DocuMind, an enterprise document question-answering assistant.
 
@@ -412,54 +290,36 @@ ANSWER:
 """
                 )
 
-                # ------------------------------------------------
-                # Document Combination Chain
-                # ------------------------------------------------
-
-                combine_docs_chain = (
+                combine_docs_chain=(
                     create_stuff_documents_chain(
                         llm,
                         prompt,
                     )
                 )
 
-                # ------------------------------------------------
-                # Retrieval QA Chain
-                # ------------------------------------------------
-
-                qa_chain = create_retrieval_chain(
+                qa_chain=create_retrieval_chain(
                     retriever,
                     combine_docs_chain,
                 )
 
-                st.session_state.qa_chain = qa_chain
+                st.session_state.qa_chain=qa_chain
 
-                st.session_state.document_name = (
+                st.session_state.document_name=(
                     uploaded_file.name
                 )
 
-                # ------------------------------------------------
-                # Cleanup temporary PDF
-                # ------------------------------------------------
-
                 os.remove(tmp_path)
-
-                # ------------------------------------------------
-                # Success message
-                # ------------------------------------------------
 
                 st.success(
                     "Document indexed successfully!"
                 )
 
                 st.info(
-                    f"Pages processed: {len(documents)}\n\n"
-                    f"Text chunks created: {len(chunks)}"
+                    f"Pages processed:{len(documents)}\n\n"
+                    f"Text chunks created:{len(chunks)}"
                 )
 
             except Exception as e:
-
-                # Cleanup if an exception occurs
                 if "tmp_path" in locals() and os.path.exists(tmp_path):
                     os.remove(tmp_path)
 
@@ -469,38 +329,20 @@ ANSWER:
 
                 st.exception(e)
 
-
-# ============================================================
-# DOCUMENT STATUS
-# ============================================================
-
 if st.session_state.document_name:
-
     st.sidebar.markdown("---")
-
     st.sidebar.markdown("### Current Document")
-
     st.sidebar.success(
         st.session_state.document_name
     )
 
-
-# ============================================================
-# MAIN QUERY INTERFACE
-# ============================================================
-
 st.markdown("### Query Console")
 
-user_query = st.text_input(
+user_query=st.text_input(
     "Document Query",
     placeholder="Type your inquiry regarding the document...",
     label_visibility="collapsed",
 )
-
-
-# ============================================================
-# QUERY DOCUMENT
-# ============================================================
 
 if user_query:
 
@@ -519,10 +361,6 @@ if user_query:
 
             try:
 
-                # ------------------------------------------------
-                # Run RAG pipeline
-                # ------------------------------------------------
-
                 response = st.session_state.qa_chain.invoke(
                     {
                         "input": user_query
@@ -534,17 +372,10 @@ if user_query:
                     "No answer was generated.",
                 )
 
-                # ------------------------------------------------
-                # Display answer
-                # ------------------------------------------------
-
                 st.markdown("#### System Result")
-
-                # Escape HTML so model output cannot accidentally
-                # break the response card.
                 import html
 
-                safe_answer = html.escape(
+                safe_answer=html.escape(
                     answer
                 ).replace(
                     "\n",
@@ -560,30 +391,23 @@ if user_query:
                     unsafe_allow_html=True,
                 )
 
-                # ------------------------------------------------
-                # Display retrieved sources
-                # ------------------------------------------------
-
                 with st.expander(
                     "Attributed Context Chunks (FAISS Matches)"
                 ):
 
-                    contexts = response.get(
+                    contexts=response.get(
                         "context",
                         [],
                     )
-
                     if not contexts:
-
                         st.info(
                             "No context chunks were returned."
                         )
 
                     else:
+                        for idx,doc in enumerate(contexts):
 
-                        for idx, doc in enumerate(contexts):
-
-                            page_number = (
+                            page_number=(
                                 doc.metadata.get(
                                     "page",
                                     0,
@@ -591,7 +415,7 @@ if user_query:
                                 + 1
                             )
 
-                            source_name = (
+                            source_name=(
                                 doc.metadata.get(
                                     "source",
                                     st.session_state.document_name
