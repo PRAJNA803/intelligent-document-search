@@ -1,70 +1,52 @@
 import os
 import tempfile
-
 import streamlit as st
 
-
-# ============================================================
-# PAGE CONFIGURATION
-# ============================================================
-
 st.set_page_config(
-    page_title="DocuMind AI | Enterprise Document Intelligence",
+    page_title="DocuMind AI|Enterprise Document Intelligence",
     page_icon="🔍",
     layout="wide",
 )
-
-
-# ============================================================
-# CUSTOM CSS
-# ============================================================
-
 st.markdown(
     """
     <style>
-
-    /* Global Styling */
-    .stApp {
-        background-color: #f8f9fa;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    .stApp{
+        background-color:#f8f9fa;
+        font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
     }
-
-    /* Header */
-    .main-header {
-        background: linear-gradient(
+    .main-header{
+        background:linear-gradient(
             135deg,
             #0f172a 0%,
             #1e293b 100%
         );
-        padding: 2rem;
-        border-radius: 12px;
-        color: white;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        padding:2rem;
+        border-radius:12px;
+        color:white;
+        margin-bottom:2rem;
+        box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
 
-    .main-header h1 {
-        color: #ffffff !important;
-        font-size: 2.2rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
+    .main-header h1{
+        color:#ffffff !important;
+        font-size:2.2rem;
+        font-weight:700;
+        margin-bottom:0.5rem;
     }
 
-    .main-header p {
-        color: #94a3b8;
-        font-size: 1rem;
-        margin: 0;
+    .main-header p{
+        color:#94a3b8;
+        font-size:1rem;
+        margin:0;
     }
 
-    /* Sidebar */
     section[data-testid="stSidebar"] {
         background-color: #ffffff;
         border-right: 1px solid #e2e8f0;
     }
 
-    /* Buttons */
     .stButton > button {
-        background-color: #2563eb;
+        background-color:#2563eb;
         color: white;
         border-radius: 8px;
         font-weight: 600;
